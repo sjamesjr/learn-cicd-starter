@@ -3,12 +3,8 @@ package auth
 import (
 	"errors"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 )
-
-// The following test code assumes that you have defined `ErrNoAuthHeaderIncluded` in `auth.go`
-// and that `auth.go` is in the same `auth` package.
 
 func TestGetAPIKey_Success(t *testing.T) {
 	headers := http.Header{}
