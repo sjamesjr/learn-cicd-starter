@@ -1,4 +1,4 @@
-![Test Badge](https://github.com/sjamesjr/learn-cicd-starter/actions/runs/16772797420/badge.svg)
+![Test Badge](https://github.com/sjamesjr/learn-cicd-starter/actions/workflows/ci.yml/badge.svg)
 
 go ver# learn-cicd-starter (Notely)
 
