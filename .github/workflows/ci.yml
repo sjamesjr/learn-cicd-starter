@@ -42,7 +42,7 @@ jobs:
 
       - name: Check formatting
         run: |
-          go_fmt_result=$(gofmt -l -x vendor .)
+          go_fmt_result=$(find . -path ./vendor -prune -o -name '*.go' -print0 | xargs -0 gofmt -l)
           if [[ -n "$go_fmt_result" ]]; then
             echo "The following files are not formatted correctly:"
             echo "$go_fmt_result"
