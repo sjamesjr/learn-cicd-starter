@@ -34,6 +34,10 @@ func main() {
 	if port == "" {
 		log.Fatal("PORT environment variable is not set")
 	}
+func unused() {
+    // this function does nothing
+    // and is called nowhere
+}
 
 	apiCfg := apiConfig{}
 
