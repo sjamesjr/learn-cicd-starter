@@ -42,12 +42,12 @@ jobs:
 
       - name: Check formatting
         run: |
-            go_fmt_result=$(gofmt -l .)
-            if [[ -n "$go_fmt_result" ]]; then
-              echo "The following files are not formatted correctly:"
-              echo "$go_fmt_result"
-              exit 1
-            fi
+          go_fmt_result=$(gofmt -l -x vendor .)
+          if [[ -n "$go_fmt_result" ]]; then
+            echo "The following files are not formatted correctly:"
+            echo "$go_fmt_result"
+            exit 1
+          fi
 
       - name: Install staticcheck
         run: go install honnef.co/go/tools/cmd/staticcheck@latest
