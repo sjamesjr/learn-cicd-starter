@@ -1,33 +1,43 @@
+package auth
+
+import (
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
+
+// The following test code assumes that you have defined `ErrNoAuthHeaderIncluded` in `auth.go`
+// and that `auth.go` is in the same `auth` package.
 
 func TestGetAPIKey_Success(t *testing.T) {
-    req := httptest.NewRequest(http.MethodGet, "/some-endpoint", nil)
-    expectedKey := "secret-key-123"
-    req.Header.Set("X-API-Key", expectedKey)
+	headers := http.Header{}
+	expectedKey := "secret-key-123"
+	headers.Set("Authorization", "ApiKey "+expectedKey)
 
-    key, err := GetAPIKey(req)
-    if err != nil {
-        t.Fatalf("expected no error, got %v", err)
-    }
+	key, err := GetAPIKey(headers)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 
-    if key != expectedKey {
-        t.Errorf("expected key %q, got %q", expectedKey, key)
-    }
+	if key != expectedKey {
+		t.Errorf("expected key %q, got %q", expectedKey, key)
+	}
 }
 
 func TestGetAPIKey_MissingHeader(t *testing.T) {
-    req := httptest.NewRequest(http.MethodGet, "/some-endpoint", nil)
+	headers := http.Header{}
 
-    key, err := GetAPIKey(req)
-    if err == nil {
-        t.Fatal("expected error, got nil")
-    }
+	key, err := GetAPIKey(headers)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
 
-    if key != "" {
-        t.Errorf("expected empty key, got %q", key)
-    }
+	if key != "" {
+		t.Errorf("expected empty key, got %q", key)
+	}
 
-    if !errors.Is(err, ErrNoAPIKey) {
-        t.Errorf("expected error %v, got %v", ErrNoAPIKey, err)
-    }
+	if !errors.Is(err, ErrNoAuthHeaderIncluded) {
+		t.Errorf("expected error %v, got %v", ErrNoAuthHeaderIncluded, err)
+	}
 }
-
