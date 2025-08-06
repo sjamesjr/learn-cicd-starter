@@ -1,3 +1,5 @@
+![Test Badge](https://github.com/sjamesjr/learn-cicd-starter/actions/runs/16772797420/badge.svg)
+
 go ver# learn-cicd-starter (Notely)
 
 This repo contains the starter code for the "Notely" application for the "Learn CICD" course on [Boot.dev](https://boot.dev).
