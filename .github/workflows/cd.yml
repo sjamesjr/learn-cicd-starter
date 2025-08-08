@@ -5,34 +5,46 @@ on:
 jobs:
   deploy:
     name: Deploy
-    runs-on: ubuntu-latest ### Make sure you use ubuntu and not AMazon Linux
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # This is required for requesting the JWT
+      contents: read
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }} ### isntead of aws keys, use IAM to allow Github access to AWS resources
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1 # Replace with your desired region
+          role-to-assume: arn:aws:iam::123456789012:role/github-actions-role # REPLACE with your IAM role ARN
+          aws-region: us-east-1
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
+
       - name: Build and push Docker image
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: your-ecr-repo-name # Replace with your ECR repo name
+          ECR_REPOSITORY: your-ecr-repo-name # REPLACE
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Build the Docker image
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          # Push the image to ECR
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Render Amazon ECS task definition
+        id: render-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: your-task-definition.json # REPLACE
+          container-name: your-container-name # REPLACE with the name of the container in your task definition
+          image: ${{ steps.build-image.outputs.image }}
+
       - name: Deploy to Amazon ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
-          task-definition: your-task-definition.json # Reference to a task definition file
-          service: your-ecs-service-name # Replace with your ECS service name
-          cluster: your-ecs-cluster-name # Replace with your ECS cluster name
+          task-definition: ${{ steps.render-task-def.outputs.task-definition }}
+          service: your-ecs-service-name # REPLACE
+          cluster: your-ecs-cluster-name # REPLACE
           wait-for-service-stability: true
