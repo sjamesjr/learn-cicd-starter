@@ -1,23 +1,43 @@
-name: cd
+# This workflow name is for display in GitHub's UI.
+name: Dynamic CD for ECS
+
+# This specifies when the workflow should run.
+# We'll trigger on pushes to the main branch and on pull requests.
+# This helps with dynamic tagging and allows for checks on PRs.
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
+
+# A simple set of global environment variables for easy configuration.
+env:
+  AWS_REGION: us-east-1 # The AWS region where your resources are located.
+  ECR_REPOSITORY: your-ecr-repo-name # The name of your ECR repository.
+  ECS_CLUSTER: your-ecs-cluster-name # The name of your ECS cluster.
+  ECS_SERVICE: your-ecs-service-name # The name of your ECS service.
+  ECS_TASK_DEFINITION: your-task-definition.json # The path to your task definition file.
+  CONTAINER_NAME: your-container-name # The name of the container in your task definition.
+
 jobs:
   deploy:
-    name: Deploy
+    name: Deploy to Amazon ECS
+    # This ensures the job only runs on push events, not pull requests.
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
-      id-token: write # This is required for requesting the JWT
+      id-token: write # This is required for requesting the JWT for OIDC
       contents: read
     steps:
-      - name: Check out code
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::123456789012:role/github-actions-role # REPLACE with your IAM role ARN
-          aws-region: us-east-1
+          # Use a GitHub secret for your IAM role ARN to keep it secure.
+          role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -27,9 +47,13 @@ jobs:
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: your-ecr-repo-name # REPLACE
+          # The image tag is now a combination of the repository and the git commit SHA.
+          # This makes every image tag unique and traceable.
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          # The `run` command is a multi-line script.
+          # It builds the image and tags it with the dynamic ECR registry URL and the git SHA.
+          # It then pushes the image to ECR.
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
@@ -37,14 +61,16 @@ jobs:
         id: render-task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: your-task-definition.json # REPLACE
-          container-name: your-container-name # REPLACE with the name of the container in your task definition
-          image: ${{ steps.build-image.outputs.image }}
+          task-definition: ${{ env.ECS_TASK_DEFINITION }}
+          container-name: ${{ env.CONTAINER_NAME }}
+          # This line dynamically sets the image in your task definition with the
+          # unique image tag created in the previous step.
+          image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
 
       - name: Deploy to Amazon ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition: ${{ steps.render-task-def.outputs.task-definition }}
-          service: your-ecs-service-name # REPLACE
-          cluster: your-ecs-cluster-name # REPLACE
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
