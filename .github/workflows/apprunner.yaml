@@ -1,6 +1,6 @@
 version: 1.0
 runtime: go
-runtime-version: 1.22 # Explicitly set the Go version from go.mod
+runtime-version: 1.22
 build:
   commands:
     - go build -mod=vendor -o server .
